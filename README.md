@@ -48,13 +48,12 @@ The offset for spiffs file system:
 * eagle.app.v6.flash.bin: 0x00000~len( eagle.app.v6.flash.bin )
 * eagle.app.v6.irom0text.bin: 0x10000~0x10000 + len( eagle.app.v6.irom0text.bin )
 * spiffs_embed.bin: (0x10000 + len( eagle.app.v6.irom0text.bin ) + sector_size(4096) ) & (~4096)
-Ie: next to the irom0text.bin, but aligned to sector_size(4096).
+* Ie: next to the irom0text.bin, but aligned to sector_size(4096).
 
 For example:
 
 ```bash
 uild@build:/opt/Espressif/nodemcu-firmware/bin$ ll
-total 972
 drwxrwxr-x  3 build build   4096 Dec 31 16:38 .
 drwxrwxr-x 17 build build   4096 Jan  1 20:23 ..
 -rw-rw-r--  1 build build  52064 Dec 31 16:25 eagle.app.v6.flash.bin
