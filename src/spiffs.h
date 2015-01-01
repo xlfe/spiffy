@@ -9,7 +9,7 @@
 
 #ifndef SPIFFS_H_
 #define SPIFFS_H_
-
+//#include "c_stdio.h"
 #include "spiffs_config.h"
 
 #define SPIFFS_OK                       0
@@ -286,7 +286,7 @@ spiffs_file SPIFFS_open(spiffs *fs, const char *path, spiffs_flags flags, spiffs
  * @param len           how much to read
  * @returns number of bytes read, or -1 if error
  */
-s32_t SPIFFS_read(spiffs *fs, spiffs_file fh, void *buf, s32_t len);
+s32_t SPIFFS_read(spiffs *fs, spiffs_file fh, void *buf, u32_t len);
 
 /**
  * Writes to given filehandle.
@@ -296,7 +296,7 @@ s32_t SPIFFS_read(spiffs *fs, spiffs_file fh, void *buf, s32_t len);
  * @param len           how much to write
  * @returns number of bytes written, or -1 if error
  */
-s32_t SPIFFS_write(spiffs *fs, spiffs_file fh, void *buf, s32_t len);
+s32_t SPIFFS_write(spiffs *fs, spiffs_file fh, void *buf, u32_t len);
 
 /**
  * Moves the read/write file offset
@@ -390,6 +390,14 @@ struct spiffs_dirent *SPIFFS_readdir(spiffs_DIR *d, struct spiffs_dirent *e);
  */
 s32_t SPIFFS_check(spiffs *fs);
 
+/**
+ * Check if EOF reached.
+ * @param fs            the file system struct
+ * @param fh            the filehandle of the file to check
+ */
+s32_t SPIFFS_eof(spiffs *fs, spiffs_file fh);
+s32_t SPIFFS_tell(spiffs *fs, spiffs_file fh);
+
 #if SPIFFS_TEST_VISUALISATION
 /**
  * Prints out a visualization of the filesystem.
@@ -414,7 +422,21 @@ u32_t SPIFFS_buffer_bytes_for_cache(spiffs *fs, u32_t num_pages);
 #endif
 #endif
 
-#if SPIFFS_CHACHE
+#if SPIFFS_CACHE
 #endif
+
+int myspiffs_open(const char *name, int flags);
+int myspiffs_close( int fd );
+size_t myspiffs_write( int fd, const void* ptr, size_t len );
+size_t myspiffs_read( int fd, void* ptr, size_t len);
+int myspiffs_lseek( int fd, int off, int whence );
+int myspiffs_eof( int fd );
+int myspiffs_tell( int fd );
+int myspiffs_getc( int fd );
+int myspiffs_ungetc( int c, int fd );
+int myspiffs_flush( int fd );
+int myspiffs_error( int fd );
+void myspiffs_clearerr( int fd );
+int myspiffs_check( void );
 
 #endif /* SPIFFS_H_ */

@@ -11,17 +11,17 @@
 static s32_t spiffs_fflush_cache(spiffs *fs, spiffs_file fh);
 
 #if SPIFFS_BUFFER_HELP
-u32_t SPIFFS_buffer_bytes_for_filedescs(spiffs *fs, u32_t num_descs) {
+u32_t ICACHE_FLASH_ATTR SPIFFS_buffer_bytes_for_filedescs(spiffs *fs, u32_t num_descs) {
   return num_descs * sizeof(spiffs_fd);
 }
 #if SPIFFS_CACHE
-u32_t SPIFFS_buffer_bytes_for_cache(spiffs *fs, u32_t num_pages) {
+u32_t ICACHE_FLASH_ATTR SPIFFS_buffer_bytes_for_cache(spiffs *fs, u32_t num_pages) {
   return sizeof(spiffs_cache) + num_pages * (sizeof(spiffs_cache_page) + SPIFFS_CFG_LOG_PAGE_SZ(fs));
 }
 #endif
 #endif
 
-s32_t SPIFFS_mount(spiffs *fs, spiffs_config *config, u8_t *work,
+s32_t ICACHE_FLASH_ATTR SPIFFS_mount(spiffs *fs, spiffs_config *config, u8_t *work,
     u8_t *fd_space, u32_t fd_space_size,
     void *cache, u32_t cache_size,
     spiffs_check_callback check_cb_f) {
@@ -34,10 +34,10 @@ s32_t SPIFFS_mount(spiffs *fs, spiffs_config *config, u8_t *work,
   memset(fd_space, 0, fd_space_size);
   // align fd_space pointer to pointer size byte boundary, below is safe
   u8_t ptr_size = sizeof(void*);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
-  u8_t addr_lsb = ((u8_t)fd_space) & (ptr_size-1);
-#pragma GCC diagnostic pop
+// #pragma GCC diagnostic push
+// #pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
+  u8_t addr_lsb = (u8_t)(((u32_t)fd_space) & (ptr_size-1));
+// #pragma GCC diagnostic pop
   if (addr_lsb) {
     fd_space += (ptr_size-addr_lsb);
     fd_space_size -= (ptr_size-addr_lsb);
@@ -46,12 +46,12 @@ s32_t SPIFFS_mount(spiffs *fs, spiffs_config *config, u8_t *work,
   fs->fd_count = (fd_space_size/sizeof(spiffs_fd));
 
   // align cache pointer to 4 byte boundary, below is safe
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
-  addr_lsb = ((u8_t)cache) & (ptr_size-1);
-#pragma GCC diagnostic pop
+// #pragma GCC diagnostic push
+// #pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
+  addr_lsb = (u8_t)(((u32_t)cache) & (ptr_size-1));
+// #pragma GCC diagnostic pop
   if (addr_lsb) {
-    cache += (ptr_size-addr_lsb);
+    cache = (u8_t *)cache + (ptr_size-addr_lsb);
     cache_size -= (ptr_size-addr_lsb);
   }
   if (cache_size & (ptr_size-1)) {
@@ -82,7 +82,7 @@ s32_t SPIFFS_mount(spiffs *fs, spiffs_config *config, u8_t *work,
   return 0;
 }
 
-void SPIFFS_unmount(spiffs *fs) {
+void ICACHE_FLASH_ATTR SPIFFS_unmount(spiffs *fs) {
   if (!SPIFFS_CHECK_MOUNT(fs)) return;
   SPIFFS_LOCK(fs);
   int i;
@@ -100,11 +100,11 @@ void SPIFFS_unmount(spiffs *fs) {
   SPIFFS_UNLOCK(fs);
 }
 
-s32_t SPIFFS_errno(spiffs *fs) {
+s32_t ICACHE_FLASH_ATTR SPIFFS_errno(spiffs *fs) {
   return fs->errno;
 }
 
-s32_t SPIFFS_creat(spiffs *fs, const char *path, spiffs_mode mode) {
+s32_t ICACHE_FLASH_ATTR SPIFFS_creat(spiffs *fs, const char *path, spiffs_mode mode) {
   SPIFFS_API_CHECK_MOUNT(fs);
   SPIFFS_LOCK(fs);
   spiffs_obj_id obj_id;
@@ -118,7 +118,7 @@ s32_t SPIFFS_creat(spiffs *fs, const char *path, spiffs_mode mode) {
   return 0;
 }
 
-spiffs_file SPIFFS_open(spiffs *fs, const char *path, spiffs_flags flags, spiffs_mode mode) {
+spiffs_file ICACHE_FLASH_ATTR SPIFFS_open(spiffs *fs, const char *path, spiffs_flags flags, spiffs_mode mode) {
   SPIFFS_API_CHECK_MOUNT(fs);
   SPIFFS_LOCK(fs);
 
@@ -175,7 +175,7 @@ spiffs_file SPIFFS_open(spiffs *fs, const char *path, spiffs_flags flags, spiffs
   return fd->file_nbr;
 }
 
-s32_t SPIFFS_read(spiffs *fs, spiffs_file fh, void *buf, s32_t len) {
+s32_t ICACHE_FLASH_ATTR SPIFFS_read(spiffs *fs, spiffs_file fh, void *buf, u32_t len) {
   SPIFFS_API_CHECK_MOUNT(fs);
   SPIFFS_LOCK(fs);
 
@@ -201,7 +201,7 @@ s32_t SPIFFS_read(spiffs *fs, spiffs_file fh, void *buf, s32_t len) {
       SPIFFS_API_CHECK_RES_UNLOCK(fs, SPIFFS_ERR_END_OF_OBJECT);
     }
     res = spiffs_object_read(fd, fd->fdoffset, avail, (u8_t*)buf);
-    if (res == SPIFFS_ERR_END_OF_OBJECT) {
+    if (res == SPIFFS_OK) {
       fd->fdoffset += avail;
       SPIFFS_UNLOCK(fs);
       return avail;
@@ -220,7 +220,7 @@ s32_t SPIFFS_read(spiffs *fs, spiffs_file fh, void *buf, s32_t len) {
   return len;
 }
 
-static s32_t spiffs_hydro_write(spiffs *fs, spiffs_fd *fd, void *buf, u32_t offset, s32_t len) {
+static s32_t ICACHE_FLASH_ATTR spiffs_hydro_write(spiffs *fs, spiffs_fd *fd, void *buf, u32_t offset, s32_t len) {
   s32_t res = SPIFFS_OK;
   s32_t remaining = len;
   if (fd->size != SPIFFS_UNDEFINED_LEN && offset < fd->size) {
@@ -228,7 +228,7 @@ static s32_t spiffs_hydro_write(spiffs *fs, spiffs_fd *fd, void *buf, u32_t offs
     res = spiffs_object_modify(fd, offset, (u8_t *)buf, m_len);
     SPIFFS_CHECK_RES(res);
     remaining -= m_len;
-    buf += m_len;
+    buf = (u8_t *)buf + m_len;
     offset += m_len;
   }
   if (remaining > 0) {
@@ -239,7 +239,7 @@ static s32_t spiffs_hydro_write(spiffs *fs, spiffs_fd *fd, void *buf, u32_t offs
 
 }
 
-s32_t SPIFFS_write(spiffs *fs, spiffs_file fh, void *buf, s32_t len) {
+s32_t ICACHE_FLASH_ATTR SPIFFS_write(spiffs *fs, spiffs_file fh, void *buf, u32_t len) {
   SPIFFS_API_CHECK_MOUNT(fs);
   SPIFFS_LOCK(fs);
 
@@ -357,7 +357,7 @@ s32_t SPIFFS_write(spiffs *fs, spiffs_file fh, void *buf, s32_t len) {
   return res;
 }
 
-s32_t SPIFFS_lseek(spiffs *fs, spiffs_file fh, s32_t offs, int whence) {
+s32_t ICACHE_FLASH_ATTR SPIFFS_lseek(spiffs *fs, spiffs_file fh, s32_t offs, int whence) {
   SPIFFS_API_CHECK_MOUNT(fs);
   SPIFFS_LOCK(fs);
 
@@ -401,7 +401,7 @@ s32_t SPIFFS_lseek(spiffs *fs, spiffs_file fh, s32_t offs, int whence) {
   return 0;
 }
 
-s32_t SPIFFS_remove(spiffs *fs, const char *path) {
+s32_t ICACHE_FLASH_ATTR SPIFFS_remove(spiffs *fs, const char *path) {
   SPIFFS_API_CHECK_MOUNT(fs);
   SPIFFS_LOCK(fs);
 
@@ -434,7 +434,7 @@ s32_t SPIFFS_remove(spiffs *fs, const char *path) {
   return 0;
 }
 
-s32_t SPIFFS_fremove(spiffs *fs, spiffs_file fh) {
+s32_t ICACHE_FLASH_ATTR SPIFFS_fremove(spiffs *fs, spiffs_file fh) {
   SPIFFS_API_CHECK_MOUNT(fs);
   SPIFFS_LOCK(fs);
 
@@ -461,7 +461,7 @@ s32_t SPIFFS_fremove(spiffs *fs, spiffs_file fh) {
   return 0;
 }
 
-static s32_t spiffs_stat_pix(spiffs *fs, spiffs_page_ix pix, spiffs_file fh, spiffs_stat *s) {
+static s32_t ICACHE_FLASH_ATTR spiffs_stat_pix(spiffs *fs, spiffs_page_ix pix, spiffs_file fh, spiffs_stat *s) {
   spiffs_page_object_ix_header objix_hdr;
   spiffs_obj_id obj_id;
   s32_t res =_spiffs_rd(fs,  SPIFFS_OP_T_OBJ_IX | SPIFFS_OP_C_READ, fh,
@@ -482,7 +482,7 @@ static s32_t spiffs_stat_pix(spiffs *fs, spiffs_page_ix pix, spiffs_file fh, spi
   return res;
 }
 
-s32_t SPIFFS_stat(spiffs *fs, const char *path, spiffs_stat *s) {
+s32_t ICACHE_FLASH_ATTR SPIFFS_stat(spiffs *fs, const char *path, spiffs_stat *s) {
   SPIFFS_API_CHECK_MOUNT(fs);
   SPIFFS_LOCK(fs);
 
@@ -499,7 +499,7 @@ s32_t SPIFFS_stat(spiffs *fs, const char *path, spiffs_stat *s) {
   return res;
 }
 
-s32_t SPIFFS_fstat(spiffs *fs, spiffs_file fh, spiffs_stat *s) {
+s32_t ICACHE_FLASH_ATTR SPIFFS_fstat(spiffs *fs, spiffs_file fh, spiffs_stat *s) {
   SPIFFS_API_CHECK_MOUNT(fs);
   SPIFFS_LOCK(fs);
 
@@ -522,7 +522,7 @@ s32_t SPIFFS_fstat(spiffs *fs, spiffs_file fh, spiffs_stat *s) {
 
 // Checks if there are any cached writes for the object id associated with
 // given filehandle. If so, these writes are flushed.
-static s32_t spiffs_fflush_cache(spiffs *fs, spiffs_file fh) {
+static s32_t ICACHE_FLASH_ATTR spiffs_fflush_cache(spiffs *fs, spiffs_file fh) {
   s32_t res = SPIFFS_OK;
 #if SPIFFS_CACHE_WR
 
@@ -552,7 +552,7 @@ static s32_t spiffs_fflush_cache(spiffs *fs, spiffs_file fh) {
   return res;
 }
 
-s32_t SPIFFS_fflush(spiffs *fs, spiffs_file fh) {
+s32_t ICACHE_FLASH_ATTR SPIFFS_fflush(spiffs *fs, spiffs_file fh) {
   SPIFFS_API_CHECK_MOUNT(fs);
   s32_t res = SPIFFS_OK;
 #if SPIFFS_CACHE_WR
@@ -565,7 +565,7 @@ s32_t SPIFFS_fflush(spiffs *fs, spiffs_file fh) {
   return res;
 }
 
-void SPIFFS_close(spiffs *fs, spiffs_file fh) {
+void ICACHE_FLASH_ATTR SPIFFS_close(spiffs *fs, spiffs_file fh) {
   if (!SPIFFS_CHECK_MOUNT(fs)) {
     fs->errno = SPIFFS_ERR_NOT_MOUNTED;
     return;
@@ -580,7 +580,7 @@ void SPIFFS_close(spiffs *fs, spiffs_file fh) {
   SPIFFS_UNLOCK(fs);
 }
 
-spiffs_DIR *SPIFFS_opendir(spiffs *fs, const char *name, spiffs_DIR *d) {
+spiffs_DIR *ICACHE_FLASH_ATTR SPIFFS_opendir(spiffs *fs, const char *name, spiffs_DIR *d) {
   if (!SPIFFS_CHECK_MOUNT(fs)) {
     fs->errno = SPIFFS_ERR_NOT_MOUNTED;
     return 0;
@@ -591,7 +591,7 @@ spiffs_DIR *SPIFFS_opendir(spiffs *fs, const char *name, spiffs_DIR *d) {
   return d;
 }
 
-static s32_t spiffs_read_dir_v(
+static s32_t ICACHE_FLASH_ATTR spiffs_read_dir_v(
     spiffs *fs,
     spiffs_obj_id obj_id,
     spiffs_block_ix bix,
@@ -624,7 +624,7 @@ static s32_t spiffs_read_dir_v(
   return SPIFFS_VIS_COUNTINUE;
 }
 
-struct spiffs_dirent *SPIFFS_readdir(spiffs_DIR *d, struct spiffs_dirent *e) {
+struct spiffs_dirent *ICACHE_FLASH_ATTR SPIFFS_readdir(spiffs_DIR *d, struct spiffs_dirent *e) {
   if (!SPIFFS_CHECK_MOUNT(d->fs)) {
     d->fs->errno = SPIFFS_ERR_NOT_MOUNTED;
     return 0;
@@ -657,12 +657,12 @@ struct spiffs_dirent *SPIFFS_readdir(spiffs_DIR *d, struct spiffs_dirent *e) {
   return ret;
 }
 
-s32_t SPIFFS_closedir(spiffs_DIR *d) {
+s32_t ICACHE_FLASH_ATTR SPIFFS_closedir(spiffs_DIR *d) {
   SPIFFS_API_CHECK_MOUNT(d->fs);
   return 0;
 }
 
-s32_t SPIFFS_check(spiffs *fs) {
+s32_t ICACHE_FLASH_ATTR SPIFFS_check(spiffs *fs) {
   s32_t res;
   SPIFFS_API_CHECK_MOUNT(fs);
   SPIFFS_LOCK(fs);
@@ -670,17 +670,55 @@ s32_t SPIFFS_check(spiffs *fs) {
   res = spiffs_lookup_consistency_check(fs, 0);
 
   res = spiffs_object_index_consistency_check(fs);
-
+// NODE_ERR("before spiffs_object_index_consistency_check\n");
   res = spiffs_page_consistency_check(fs);
-
+// NODE_ERR("spiffs_page_consistency_check\n");
   res = spiffs_obj_lu_scan(fs);
+// NODE_ERR("spiffs_obj_lu_scan\n");
+  SPIFFS_UNLOCK(fs);
+  return res;
+}
+
+s32_t ICACHE_FLASH_ATTR SPIFFS_eof(spiffs *fs, spiffs_file fh) {
+  SPIFFS_API_CHECK_MOUNT(fs);
+  SPIFFS_LOCK(fs);
+
+  spiffs_fd *fd;
+  s32_t res;
+  res = spiffs_fd_get(fs, fh, &fd);
+  SPIFFS_API_CHECK_RES(fs, res);
+
+#if SPIFFS_CACHE_WR
+  spiffs_fflush_cache(fs, fh);
+#endif
+
+  res = (fd->fdoffset == fd->size);
+
+  SPIFFS_UNLOCK(fs);
+  return res;
+}
+
+s32_t ICACHE_FLASH_ATTR SPIFFS_tell(spiffs *fs, spiffs_file fh) {
+  SPIFFS_API_CHECK_MOUNT(fs);
+  SPIFFS_LOCK(fs);
+
+  spiffs_fd *fd;
+  s32_t res;
+  res = spiffs_fd_get(fs, fh, &fd);
+  SPIFFS_API_CHECK_RES(fs, res);
+
+#if SPIFFS_CACHE_WR
+  spiffs_fflush_cache(fs, fh);
+#endif
+
+  res = fd->fdoffset;
 
   SPIFFS_UNLOCK(fs);
   return res;
 }
 
 #if SPIFFS_TEST_VISUALISATION
-s32_t SPIFFS_vis(spiffs *fs) {
+s32_t ICACHE_FLASH_ATTR SPIFFS_vis(spiffs *fs) {
   s32_t res = SPIFFS_OK;
   SPIFFS_API_CHECK_MOUNT(fs);
   SPIFFS_LOCK(fs);
