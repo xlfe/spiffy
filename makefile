@@ -1,4 +1,4 @@
-BINARY = linux_spiffs_test
+BINARY = spiffy
 
 ############
 #
