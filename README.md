@@ -47,8 +47,8 @@ NB: The default rom size is 16k - you can edit main.c to change this
 The offset for spiffs file system:
 * eagle.app.v6.flash.bin: 0x00000~len( eagle.app.v6.flash.bin )
 * eagle.app.v6.irom0text.bin: 0x10000~0x10000 + len( eagle.app.v6.irom0text.bin )
-* spiffs_embed.bin: (0x10000 + len( eagle.app.v6.irom0text.bin ) + sector_size(4096) ) & (~4096)
-* Ie: next to the irom0text.bin, but aligned to sector_size(4096).
+* spiffs_embed.bin: (0x10000 + lengthof(iromtext) + 0x4000) & (0xFFFFC000)
+* Ie: next to the irom0text.bin, but aligned to 4 * 4096 Bytes (0x4000).
 
 For example:
 
@@ -63,8 +63,9 @@ drwxrwxr-x 17 build build   4096 Jan  1 20:23 ..
 So to burn my image I would run:
 
 ```bash
-esptool.py --port /dev/ttyUSB0 write_flash 0x58000 ../../spiffy/spiff_rom.bin
+esptool.py --port /dev/ttyUSB0 write_flash STARTADDR ../../spiffy/spiff_rom.bin
 ```
+* Ie: STARTADDR = (0x10000 + lengthof(iromtext) + 0x4000) & (0xFFFFC000)
 
 #### Done!
 
