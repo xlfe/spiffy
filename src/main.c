@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <dirent.h>
 #include <spiffs.h>
@@ -5,8 +6,10 @@
 #define SPI_FLASH_SEC_SIZE 4096
 #define LOG_PAGE_SIZE       256
 
-//16k
-#define MAX_SIZE 48*4*1024
+#define MIN_SIZE 64*1024
+#define MAX_SIZE 192*1024
+
+u32_t g_ROMSize = MAX_SIZE;
 
 #define FILEDIR "files"
 #define ROMNAME "spiff_rom.bin"
@@ -20,7 +23,6 @@ static u8_t spiffs_cache_buf[(LOG_PAGE_SIZE+32)*4];
 #define S_DBG /*printf*/
 
 FILE *rom;
-
 
 void hexdump_mem(u8_t *b, u32_t len) {
     while (len--) {
@@ -106,7 +108,7 @@ static s32_t my_spiffs_erase(u32_t addr, u32_t size) {
 void my_spiffs_mount() {
   spiffs_config cfg;
 
-  cfg.phys_size = MAX_SIZE; // use all spi flash
+  cfg.phys_size = g_ROMSize; // use all spi flash
   cfg.phys_addr = 0; // start spiffs at start of spi flash
 
   cfg.phys_erase_block = SPI_FLASH_SEC_SIZE;
@@ -207,18 +209,34 @@ void add_file(char* fname) {
 
 int main(int argc, char **args) {
 
+	if(argc > 1)
+	{
+		g_ROMSize = atoi(args[1]) * 1024;
+		g_ROMSize &= 0xFFFFF000; //align to 4K
+		
+		if( MIN_SIZE > g_ROMSize)
+		{
+			g_ROMSize = MIN_SIZE;
+			printf("Using minimum flash size %d kB\n", g_ROMSize/1024);
+		}
+		else if(MAX_SIZE < g_ROMSize)
+		{
+			g_ROMSize = MAX_SIZE;
+			printf("Using maximum flash size %d kB\n", g_ROMSize/1024);
+		}
+	}
+
     rom = fopen(ROMNAME,"w+");
     int i;
-    for(i=0; i < MAX_SIZE; i++) {
+    for(i=0; i < g_ROMSize; i++) {
         fputc(ROMERASE,rom);
     }
     fflush(rom);
 
     my_spiffs_mount();
-    printf("Creating rom %s of size %d bytes\n", ROMNAME, MAX_SIZE);
-
-
-    printf("Adding files in directory %s\n", FILEDIR);
+    printf("Creating rom %s of size %d kB\n", ROMNAME, g_ROMSize/1024);
+	printf("For another rom size use \"spiffy <size_kBytes>\"\n");
+    printf("Adding files in directory \"%s\"\n", FILEDIR);
     DIR *dir;
     struct dirent *ent;
     if ((dir = opendir (FILEDIR)) != NULL) {
@@ -229,11 +247,9 @@ int main(int argc, char **args) {
         closedir (dir);
     } else {
         /* could not open directory */
-        printf("Unable to open directory %s\n", FILEDIR);
+        printf("Unable to open directory \"%s\"\n", FILEDIR);
         return EXIT_FAILURE;
     }
-
-
 
     fclose(rom);
     exit(EXIT_SUCCESS);
