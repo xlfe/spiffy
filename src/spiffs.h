@@ -180,7 +180,7 @@ typedef struct {
   u32_t fd_count;
 
   // last error
-  s32_t errno;
+  s32_t myerrno;
 
   // current number of free blocks
   u32_t free_blocks;

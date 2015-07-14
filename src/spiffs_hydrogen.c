@@ -101,7 +101,7 @@ void ICACHE_FLASH_ATTR SPIFFS_unmount(spiffs *fs) {
 }
 
 s32_t ICACHE_FLASH_ATTR SPIFFS_errno(spiffs *fs) {
-  return fs->errno;
+  return fs->myerrno;
 }
 
 s32_t ICACHE_FLASH_ATTR SPIFFS_creat(spiffs *fs, const char *path, spiffs_mode mode) {
@@ -542,7 +542,7 @@ static s32_t ICACHE_FLASH_ATTR spiffs_fflush_cache(spiffs *fs, spiffs_file fh) {
           spiffs_get_cache_page(fs, spiffs_get_cache(fs), fd->cache_page->ix),
           fd->cache_page->offset, fd->cache_page->size);
       if (res < SPIFFS_OK) {
-        fs->errno = res;
+        fs->myerrno = res;
       }
       spiffs_cache_fd_release(fs, fd->cache_page);
     }
@@ -567,7 +567,7 @@ s32_t ICACHE_FLASH_ATTR SPIFFS_fflush(spiffs *fs, spiffs_file fh) {
 
 void ICACHE_FLASH_ATTR SPIFFS_close(spiffs *fs, spiffs_file fh) {
   if (!SPIFFS_CHECK_MOUNT(fs)) {
-    fs->errno = SPIFFS_ERR_NOT_MOUNTED;
+    fs->myerrno = SPIFFS_ERR_NOT_MOUNTED;
     return;
   }
   SPIFFS_LOCK(fs);
@@ -582,7 +582,7 @@ void ICACHE_FLASH_ATTR SPIFFS_close(spiffs *fs, spiffs_file fh) {
 
 spiffs_DIR *ICACHE_FLASH_ATTR SPIFFS_opendir(spiffs *fs, const char *name, spiffs_DIR *d) {
   if (!SPIFFS_CHECK_MOUNT(fs)) {
-    fs->errno = SPIFFS_ERR_NOT_MOUNTED;
+    fs->myerrno = SPIFFS_ERR_NOT_MOUNTED;
     return 0;
   }
   d->fs = fs;
@@ -626,7 +626,7 @@ static s32_t ICACHE_FLASH_ATTR spiffs_read_dir_v(
 
 struct spiffs_dirent *ICACHE_FLASH_ATTR SPIFFS_readdir(spiffs_DIR *d, struct spiffs_dirent *e) {
   if (!SPIFFS_CHECK_MOUNT(d->fs)) {
-    d->fs->errno = SPIFFS_ERR_NOT_MOUNTED;
+    d->fs->myerrno = SPIFFS_ERR_NOT_MOUNTED;
     return 0;
   }
   SPIFFS_LOCK(fs);
@@ -651,7 +651,7 @@ struct spiffs_dirent *ICACHE_FLASH_ATTR SPIFFS_readdir(spiffs_DIR *d, struct spi
     d->entry = entry + 1;
     ret = e;
   } else {
-    d->fs->errno = res;
+    d->fs->myerrno = res;
   }
   SPIFFS_UNLOCK(fs);
   return ret;
@@ -778,7 +778,7 @@ s32_t ICACHE_FLASH_ATTR SPIFFS_vis(spiffs *fs) {
   } // per block
 
   spiffs_printf("era_cnt_max: %i\n", fs->max_erase_count);
-  spiffs_printf("last_errno:  %i\n", fs->errno);
+  spiffs_printf("last_errno:  %i\n", fs->myerrno);
   spiffs_printf("blocks:      %i\n", fs->block_count);
   spiffs_printf("free_blocks: %i\n", fs->free_blocks);
   spiffs_printf("page_alloc:  %i\n", fs->stats_p_allocated);

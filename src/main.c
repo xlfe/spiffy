@@ -6,7 +6,7 @@
 #define LOG_PAGE_SIZE       256
 
 //16k
-#define MAX_SIZE 4*4*1024
+#define MAX_SIZE 48*4*1024
 
 #define FILEDIR "files"
 #define ROMNAME "spiff_rom.bin"
@@ -17,7 +17,7 @@ static u8_t spiffs_work_buf[LOG_PAGE_SIZE*2];
 static u8_t spiffs_fds[32*4];
 static u8_t spiffs_cache_buf[(LOG_PAGE_SIZE+32)*4];
 
-#define S_DBG
+#define S_DBG /*printf*/
 
 FILE *rom;
 
@@ -170,10 +170,10 @@ void add_file(char* fname) {
     sprintf(path,"%s/%s", FILEDIR,fname);
 
 
-    FILE *fp = fopen(path,"r");
+    FILE *fp = fopen(path,"rb");
 
     if (fp == NULL){
-        S_DBG("Skipping %s",path);
+        S_DBG("Skipping %s\n",path);
         return;
     }
 
