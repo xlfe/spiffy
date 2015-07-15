@@ -247,19 +247,19 @@
 
 #define SPIFFS_API_CHECK_MOUNT(fs) \
   if (!SPIFFS_CHECK_MOUNT((fs))) { \
-    (fs)->errno = SPIFFS_ERR_NOT_MOUNTED; \
+    (fs)->myerrno = SPIFFS_ERR_NOT_MOUNTED; \
     return -1; \
   }
 
 #define SPIFFS_API_CHECK_RES(fs, res) \
   if ((res) < SPIFFS_OK) { \
-    (fs)->errno = (res); \
+    (fs)->myerrno = (res); \
     return -1; \
   }
 
 #define SPIFFS_API_CHECK_RES_UNLOCK(fs, res) \
   if ((res) < SPIFFS_OK) { \
-    (fs)->errno = (res); \
+    (fs)->myerrno = (res); \
     SPIFFS_UNLOCK(fs); \
     return -1; \
   }
