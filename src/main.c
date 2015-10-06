@@ -15,6 +15,8 @@ u32_t g_ROMSize = MAX_SIZE;
 #define ROMNAME "spiff_rom.bin"
 #define ROMERASE 0xFF
 
+char g_Files[512] = FILEDIR;
+
 static spiffs fs;
 static u8_t spiffs_work_buf[LOG_PAGE_SIZE*2];
 static u8_t spiffs_fds[32*4];
@@ -169,7 +171,7 @@ void add_file(char* fname) {
     char *path = malloc(1024);
 
 
-    sprintf(path,"%s/%s", FILEDIR,fname);
+    sprintf(path,"%s/%s", g_Files, fname);
 
 
     FILE *fp = fopen(path,"rb");
@@ -209,10 +211,11 @@ void add_file(char* fname) {
 
 int main(int argc, char **args) {
 
-	if(argc > 1)
+	if(argc > 2)
 	{
 		g_ROMSize = atoi(args[1]) * 1024;
 		g_ROMSize &= 0xFFFFF000; //align to 4K
+		strcpy(g_Files, args[2]);
 		
 		if( MIN_SIZE > g_ROMSize)
 		{
@@ -235,11 +238,11 @@ int main(int argc, char **args) {
 
     my_spiffs_mount();
     printf("Creating rom %s of size %d kB\n", ROMNAME, g_ROMSize/1024);
-	printf("For another rom size use \"spiffy <size_kBytes>\"\n");
-    printf("Adding files in directory \"%s\"\n", FILEDIR);
+	printf("For another rom size use \"spiffy <size_kBytes> <files>\"\n");
+    printf("Adding files in directory \"%s\"\n", g_Files);
     DIR *dir;
     struct dirent *ent;
-    if ((dir = opendir (FILEDIR)) != NULL) {
+    if ((dir = opendir (g_Files)) != NULL) {
         /* print all the files and directories within directory */
         while ((ent = readdir (dir)) != NULL) {
             add_file(ent->d_name);
@@ -247,7 +250,7 @@ int main(int argc, char **args) {
         closedir (dir);
     } else {
         /* could not open directory */
-        printf("Unable to open directory \"%s\"\n", FILEDIR);
+        printf("Unable to open directory \"%s\"\n", g_Files);
         return EXIT_FAILURE;
     }
 
