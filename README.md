@@ -1,6 +1,8 @@
 spiffy
 ======
 
+## No longer maintained. Please see [forks](https://github.com/xlfe/spiffy/network) for other repos!
+
 Build a [spiffs](https://github.com/pellepl/spiffs) file system binary for embedding/writing
 onto the [nodemcu](https://github.com/nodemcu/nodemcu-firmware) ESP8266 spiffs file system
 
